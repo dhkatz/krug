@@ -1,0 +1,61 @@
+Krug {
+    Program         = Statement+
+    Statement       = Assignment
+                    | Declaration
+                    | Function
+                    | Block
+                    | Expression
+                    | Branch
+    Assignment      = Declaration "=" Expression
+                    | id "=" Expression
+    Declaration     = (let | const) id ":" type
+    Function        = func id "(" ListOf<Argument, ","> ")" ":" type FunctionBody
+    FunctionBody    = Block
+                    | "=" Expression -- exp
+    Argument        = id ":" type
+    Using           = "using" "(" Var ")" Block
+    Block           = "{" Statement* "}"
+    Expression      = Operation
+
+    // Precedence: Low -> High
+    Operation       = Logical
+    Logical         = Logical ("&&" | "||") Relational -- binary
+                    | Relational
+    Relational      = Relational ("<=" | "==" | "!=" | ">=" | "<" | ">") Additive -- binary
+                    | Additive
+    Additive        = Additive ("+" | "-") Multiplicative -- binary
+                    | Multiplicative
+    Multiplicative  = Multiplicative ("*" | "/") Unary -- binary
+                    | Unary
+    Unary           = ("+" | "-") Term -- prefix
+                    | Term
+    Term            = literal
+                    | Call
+                    | Var
+                    | "(" Expression ")" -- paren
+
+    Var             = Var "." id -- property
+                    | id -- id
+    Call            = Var "(" ListOf<Expression, ","> ")"
+
+    // Branching
+    Branch          = IfBranch ElseIfBranch* ElseBranch?
+    IfBranch        = if "(" Expression ")" Block
+    ElseIfBranch    = else IfBranch
+    ElseBranch      = else Block
+
+    func            = "func" ~alnum
+    const           = "const" ~alnum
+    let             = "let" ~alnum
+    return          = "return" ~alnum
+    if              = "if" ~alnum
+    elif            = "elif" ~alnum
+    else            = "else" ~alnum
+    literal         = boolean | number
+    boolean         = ("true" | "false") ~alnum
+    keyword         = let | const | func | return | if | elif | else | boolean
+    type            = ~keyword letter alnum*
+    id              = ~keyword letter alnum*
+    number          = digit* "." digit+ -- float
+                    | digit+
+}
