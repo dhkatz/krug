@@ -92,7 +92,7 @@ export class IfBranch extends Block {
   public constructor(
     body: Block,
     public elseBranch: ElseBranch | Block | null,
-    public expression: typeof elseBranch extends ElseBranch ? Expression : null
+    public expression: Expression | null
   ) {
     super(body.statements);
   }
@@ -102,7 +102,7 @@ export class ElseBranch extends IfBranch {
   public constructor(
     body: Block,
     elseBranch: ElseBranch | Block | null,
-    expression: typeof ElseBranch extends ElseBranch ? Expression : null
+    expression: Expression | null
   ) {
     super(body, elseBranch, expression);
   }

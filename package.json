@@ -2,21 +2,31 @@
   "name": "krug",
   "version": "0.1.0",
   "description": "The Krug programming language!",
-  "main": "index.js",
+  "main": "build/krug.js",
+  "files": [
+    "build/"
+  ],
   "scripts": {
     "build": "tsc",
-    "test": "jest"
+    "test": "jest --ci --verbose",
+    "test:coverage": "jest --ci --coverage",
+    "coverage": "jest --coverage --ci && cat ./coverage/lcov.info | coveralls"
   },
   "keywords": [
     "krug",
     "programming"
   ],
   "author": "David Katz",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dhkatz/krug.git"
+  },
   "license": "MIT",
   "devDependencies": {
     "@types/jest": "^26.0.22",
     "@typescript-eslint/eslint-plugin": "^4.20.0",
     "@typescript-eslint/parser": "^4.20.0",
+    "coveralls": "^3.1.0",
     "eslint": "^7.23.0",
     "eslint-config-prettier": "^8.1.0",
     "eslint-plugin-prettier": "^3.3.1",
@@ -37,9 +47,7 @@
       "plugin:prettier/recommended"
     ],
     "parser": "@typescript-eslint/parser",
-    "rules": {
-
-    }
+    "rules": {}
   },
   "jest": {
     "preset": "ts-jest",
@@ -47,6 +55,13 @@
       "ts-jest": {
         "tsconfig": "./tsconfig.json"
       }
-    }
+    },
+    "testEnvironment": "node",
+    "collectCoverage": true,
+    "testRegex": "(/test/.*|(\\.|/)(test|spec))\\.(ts|js)?$",
+    "moduleFileExtensions": ["ts", "js"],
+    "collectCoverageFrom": [
+      "src/*.{ts}"
+    ]
   }
 }

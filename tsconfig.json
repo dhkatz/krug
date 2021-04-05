@@ -11,7 +11,8 @@
     "allowSyntheticDefaultImports": true,
     "importHelpers": true,
     "baseUrl": ".",
-    "lib": ["esnext"]
+    "lib": ["esnext"],
+    "declaration": true
   },
   "include": [
     "src"

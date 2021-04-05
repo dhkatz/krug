@@ -134,16 +134,12 @@ const KRUG_SEMANTICS = KRUG_GRAMMAR.createSemantics()
     },
   });
 
-export default function parse(source: string): boolean {
+export default function parse(source: string): Program {
   const match = KRUG_GRAMMAR.match(source);
 
   if (!match.succeeded()) {
     throw new Error(match.message);
   }
 
-  const ast = KRUG_SEMANTICS(match).ast();
-
-  console.log(ast.statements[0].body);
-
-  return ast;
+  return KRUG_SEMANTICS(match).ast();
 }
