@@ -59,7 +59,10 @@
     "testEnvironment": "node",
     "collectCoverage": true,
     "testRegex": "(/test/.*|(\\.|/)(test|spec))\\.(ts|js)?$",
-    "moduleFileExtensions": ["ts", "js"],
+    "moduleFileExtensions": [
+      "ts",
+      "js"
+    ],
     "collectCoverageFrom": [
       "src/*.{ts}"
     ]
