@@ -1,6 +1,6 @@
 # Krug
 
-[![Build Status](https://travis-ci.com/dhkatz/krug.svg?branch=main)](https://travis-ci.com/dhkatz/krug) [![Coverage Status](https://coveralls.io/repos/github/dhkatz/krug/badge.svg?branch=master)](https://coveralls.io/github/dhkatz/krug?branch=master)
+[![Krug](https://github.com/dhkatz/krug/actions/workflows/krug.yml/badge.svg)](https://github.com/dhkatz/krug/actions/workflows/krug.yml) ![Coverage Status](https://img.shields.io/endpoint?url=https://api.keyvalue.xyz/bf60b9ad/coverage)
 
 The Krug programming language. Based on the [Ohm](https://github.com/harc/ohm) parsing toolkit.
 
