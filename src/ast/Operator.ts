@@ -1,35 +1,51 @@
-import { Expression } from "./index";
-
-export type Operator = BinaryOperator | UnaryOperator | CallOperator;
-
 // Binary
 
-export class BinaryOperator {
+import { Expression } from "./Expression";
+
+export class BinaryExpression extends Expression {
   public constructor(
     public left: Expression,
     public operator: string,
     public right: Expression
-  ) {}
+  ) {
+    super();
+  }
 }
 
-export class Disjunction extends BinaryOperator {}
-export class Conjunction extends BinaryOperator {}
-export class Equality extends BinaryOperator {}
-export class Comparison extends BinaryOperator {}
-export class Additive extends BinaryOperator {}
-export class Multiplicative extends BinaryOperator {}
+export class Logical extends BinaryExpression {}
+export class Equality extends BinaryExpression {}
+export class Relational extends BinaryExpression {}
+export class Additive extends BinaryExpression {}
+export class Multiplicative extends BinaryExpression {}
+
+export class Assignment extends Expression {
+  public constructor(
+    public ref: Expression,
+    public operator: string,
+    public exp: Expression
+  ) {
+    super();
+  }
+}
 
 // Unary
 
-export class UnaryOperator {
-  public constructor(public operator: string, public operand: Expression) {}
+export class UnaryExpression extends Expression {
+  public constructor(public operator: string, public operand: Expression) {
+    super();
+  }
 }
 
 // Call
 
-export class CallOperator {
-  public constructor(
-    public expression: Expression,
-    public args: Expression[]
-  ) {}
+export class Argument extends Expression {
+  public constructor(public expression: Expression) {
+    super();
+  }
+}
+
+export class CallExpression extends Expression {
+  public constructor(public expression: Expression, public args: Argument[]) {
+    super();
+  }
 }

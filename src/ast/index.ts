@@ -1,31 +1,27 @@
-import { Assignment, Declaration } from "./Variable";
-import { Block, Branch } from "./Branch";
-import { Operator } from "./Operator";
-import { Function } from "./Function";
+import { Statement } from "./Statement";
+import { Node } from "./Node";
 
-export * from "./Branch";
-export * from "./Function";
+export * from "./Control";
 export * from "./Operator";
-export * from "./Variable";
+export * from "./Declaration";
+export * from "./Literal";
+export * from "./Node";
+export * from "./Statement";
 
-export type Expression = Operator;
-
-export class Program {
-  public constructor(public statements: Statement[]) {}
+export class Program extends Node {
+  public constructor(public statements: Statement[]) {
+    super();
+  }
 }
 
-export type Statement =
-  | Assignment
-  | Declaration
-  | Function
-  | Block
-  | Expression
-  | Branch;
-
-export class Identifier {
-  public constructor(public name: string) {}
+export class Identifier extends Node {
+  public constructor(public name: string) {
+    super();
+  }
 }
 
-export class Type {
-  public constructor(public name: string) {}
+export class Type extends Node {
+  public constructor(public name: string) {
+    super();
+  }
 }

@@ -58,13 +58,14 @@
     },
     "testEnvironment": "node",
     "collectCoverage": true,
-    "testRegex": "(/test/.*|(\\.|/)(test|spec))\\.(ts|js)?$",
+    "testRegex": "/test/.*\\.test\\.[jt]s$",
     "moduleFileExtensions": [
       "ts",
       "js"
     ],
     "collectCoverageFrom": [
-      "src/*.{ts}"
+      "src/**/*.{js,ts}",
+      "!<rootDir>/node_modules/"
     ]
   }
 }

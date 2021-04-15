@@ -1,153 +1,159 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import ohm, { ActionDict, Node } from "ohm-js";
-import {
-  Argument,
-  Assignment,
-  Block,
-  CallOperator,
-  Declaration,
-  ElseBranch,
-  Function,
-  Identifier,
-  IfBranch,
-  Program, Qualifier,
-  Type
-} from "./ast";
+import ohm from "ohm-js";
+import * as ast from "./ast";
 const KRUG_GRAMMAR = ohm.grammar(String.raw`Krug {
-    Program         = Statement*
-                    
-    Assignment      = Declaration "=" Expression -- decl
-                    | id "=" Expression -- exp
-    Declaration     = qualifier id ":" type -- declaration
-    Function        = func id "(" ListOf<Argument, ","> ")" ":" type FunctionBody -- func
-    FunctionBody    = Block
-                    | "=" Expression -- exp
-    Argument        = id ":" type -- arg
-    Block           = "{" Statement* "}" -- block
-    
-    Expression      = Logical
-                    |
+    Program                     = Statement*
 
-    Logical         = Logical ("&&" | "||") Relational -- binary
-                    | Relational
-                    
-    Relational      = Relational ("<=" | ">=" | "<" | ">") Equality -- binary
-                    | EqualityExpression
-                    
-    EqualityExpression          = EqualityExpression ("==" | "!=") AdditiveExpression
+    Statement                   = 
+                                | Block
+                                | Declaration
+                                | ExpressionStatement
+                                | ReturnStatement
+                                | FunctionDeclaration
+                                | ClassDeclaration
+
+    Block                       = "{" Statement* "}"
+    
+    ExpressionStatement         = ~("{" | "func" | "class") Expression
+    ReturnStatement             = "return" Expression?
+    
+    Declaration                 = qualifier Identifier ":" type Initializer?
+    FunctionDeclaration         = "func" Identifier Parameters ":" type (Block | Initializer)
+    OperatorDeclaration         = "func" Operator Parameters (Block | Initializer)
+    ClassDeclaration            = "class" Identifier "{" (Declaration | FunctionDeclaration | OperatorDeclaration)* "}"
+
+    IfExpression                = "if" "(" Expression ")" Statement ("else" Statement)?
+    FunctionExpression          = "func" Identifier? Arguments ":" type (Block | Initializer)
+
+    Expression                  = AssignmentExpression
+
+    AssignmentExpression        = ReferenceExpression ("+=" | "-=" | "*=" | "/=") AssignmentExpression -- op_equals
+                                | ReferenceExpression "=" AssignmentExpression -- bind
+                                | LogicalExpression
+
+    LogicalExpression           = LogicalExpression ("||" | "&&") EqualityExpression -- binary
+                                | EqualityExpression
+
+    EqualityExpression          = EqualityExpression ("==" | "!=") RelationalExpression -- binary
+                                | RelationalExpression
+
+    RelationalExpression        = RelationalExpression (">=" | "<=" | ">" | "<") AdditiveExpression -- binary
                                 | AdditiveExpression
-                    
+
     AdditiveExpression          = AdditiveExpression ("+" | "-") MultiplicativeExpression -- binary
                                 | MultiplicativeExpression
-                    
-    MultiplicativeExpression    = Multiplicative ("*" | "/") Unary -- binary
-                                | Unary
-                    
-    UnaryExpression             = ("+" | "-" | "!") UnaryExpression -- prefix
-                                | Term
 
-    Var             = Var "." id -- property
-                    | id -- id
-    Call            = Var "(" ListOf<Expression, ","> ")" 
+    MultiplicativeExpression    = MultiplicativeExpression ("*" | "/" | "%") UnaryExpression -- binary
+                                | UnaryExpression
 
-    IfStatement     = if "(" Expression ")" Statement else Statement
-                    | if "(" Expression ")" Statement
+    UnaryExpression             = ("-" | "!") UnaryExpression -- unary
+                                | ReferenceExpression
+                                
+    ReferenceExpression         = CallExpression
+                                | AccessExpression
 
-    qualifier       = ("const" | "let") ~alnum
-    func            = "func" ~alnum
-    return          = "return" ~alnum
-    if              = "if" ~alnum
-    elif            = "elif" ~alnum
-    else            = "else" ~alnum
-    
-    keyword         = qualifier | func | return | if | elif | else | boolean
-    
+    CallExpression              = // CallExpression "." Identifier -- property
+                                | CallExpression Arguments -- call
+                                | AccessExpression Arguments -- access
+
+    AccessExpression            = // AccessExpression "." Identifier -- property
+                                | BasicExpression
+
+    BasicExpression             = Literal
+                                | Identifier
+                                | FunctionExpression
+                                | IfExpression
+                                | "(" Expression ")" -- paren
+
+    Identifier      = ~keyword letter alnum*
+    Argument        = AssignmentExpression
+    Arguments       = "(" ")" -- empty
+                    | "(" ListOf<Argument, ","> ")" -- list
+    Parameter       = Identifier ":" type
+    Parameters      = "(" ")" -- empty
+                    | "(" ListOf<Parameter, ","> ")" -- list
+    Initializer     = "=" AssignmentExpression
+    qualifier       = ("let" | "const") ~alnum
+    Operator        = ("+" | "-" | "*" | "/")
+    Literal         = boolean
+                    | number
+
+    keyword         = "let" | "const" | "func" | boolean | "if" | "else" | "return"
     type            = ~keyword letter alnum*
-    id              = ~keyword letter alnum*
-    
-    literal         = boolean | number
+
     boolean         = ("true" | "false") ~alnum
-    number          = digit* "." digit+ -- float
-                    | digit+
+    number          = digit+ ("." digit+)?
 }`);
 
-const AST_ACTIONS: ActionDict = {
+const opt = (node: ohm.Node) =>
+  node.numChildren ? node.child(0).ast() : undefined;
+
+const KRUG_SEMANTICS = KRUG_GRAMMAR.createSemantics().addOperation("ast", {
   // Syntactical
-  Program: (body) => new Program(body.ast()),
-  Assignment: build(Assignment),
-  Declaration: build(Declaration),
-  Block: build(Block),
-  Argument: build(Argument),
-  Function: build(Function),
-  FunctionBody_exp: (_eq, exp) => new Block([exp.ast()]),
-  Branch: (node) => {
-    // const ifStmt = ifBranch.ast() as IfBranch;
-    //
-    // const elseIfStmts = elseIfBranch.asIteration();
-    //
-    // let tail = ifStmt;
-    // if (elseIfStmts.length > 0) {
-    //   const head = elseIfStmts.shift() as ElseBranch;
-    //   tail = head;
-    //
-    //   while (elseIfStmts.length > 0) {
-    //     tail.elseBranch = elseIfStmts.shift();
-    //     if (tail.elseBranch) {
-    //       tail = tail.elseBranch as ElseBranch;
-    //     }
-    //   }
-    //
-    //   ifStmt.elseBranch = head;
-    // }
-    //
-    // if (elseBranch.child(0)) {
-    //   tail.elseBranch = elseBranch.child(0).ast();
-    // }
-    //
-    // return ifStmt;
+  Program: (body) => new ast.Program(body.ast()),
+  Block: (_open, statements, _close) => new ast.Block(statements.ast()),
 
-    console.log(node.children)
-  },
-  IfBranch: build(IfBranch),
-  // ElseBranch: build(ElseBranch),
-  Call: (exp, _open, args, _close) => {
-    console.log(args.asIteration().ast());
-    return new CallOperator(exp.ast(), args.asIteration());
-  },
-  // Lexical
-  id: (letter, label) =>
-    new Identifier(letter.sourceString + label.sourceString),
-  type: (letter, label) => new Type(letter.sourceString + label.sourceString),
-  number: (digits) => Number(digits.sourceString),
-  boolean: (val) => Boolean(val.sourceString === "true"),
-  qualifier: (label) => new Qualifier(label.sourceString)
-}
+  ReturnStatement: (_return, exp) => new ast.ReturnStatement(opt(exp)),
 
-const isTerminal = (node: Node) => !AST_ACTIONS[node.ctorName] &&
-  node.isTerminal() ||
-  node.numChildren === 1 && node.child(0).isTerminal() && !AST_ACTIONS[node.child(0).ctorName]
+  Declaration: (qualifier, identifier, _col, type, initializer) =>
+    new ast.Declaration(
+      qualifier.ast(),
+      identifier.ast(),
+      type.ast(),
+      opt(initializer)
+    ),
+  FunctionDeclaration: (_func, id, args, _col, type, exp) =>
+    new ast.FunctionDeclaration(id.ast(), args.ast(), type.ast(), exp.ast()),
+  OperatorDeclaration: (_func, op, args, exp) =>
+    new ast.OperatorDeclaration(op.sourceString, args.ast(), exp.ast()),
+  ClassDeclaration: (_class, id, _left, declarations, _right) =>
+    new ast.ClassDeclaration(id.ast(), declarations.ast()),
 
-function build<T extends { new (...args: any[]): InstanceType<T> }>(Class: T) {
-  return (args: Node): InstanceType<T> => {
-    console.log(Class.name.toUpperCase())
-    for (const child of args.children) {
-      console.log(child.ctorName, isTerminal(child));
-      if (child.ctorName === 'qualifier') console.log(child)
-    }
-    return new Class(...args.children.filter((arg) => !isTerminal(arg)).map(arg => arg.ast()));
-  }
-}
+  IfExpression: (_if, _open, expression, _close, statement, _else, elseStmt) =>
+    new ast.IfExpression(expression.ast(), statement.ast(), opt(elseStmt)),
 
-const KRUG_SEMANTICS = KRUG_GRAMMAR.createSemantics()
-  .addOperation("ast", AST_ACTIONS)
-  // .extendOperation("asIteration", {
-  //   ElseIfBranch: (_else, ifBranch) => {
-  //     const ifStmt = ifBranch.ast() as IfBranch;
-  //     return new ElseBranch(ifStmt, ifStmt.elseBranch,);
-  //   },
-  // });
+  AssignmentExpression_bind: (ref, op, exp) =>
+    new ast.Assignment(ref.ast(), op.sourceString, exp.ast()),
+  LogicalExpression_binary: (left, op, right) =>
+    new ast.Logical(left.ast(), op.sourceString, right.ast()),
+  EqualityExpression_binary: (left, op, right) =>
+    new ast.Equality(left.ast(), op.sourceString, right.ast()),
+  RelationalExpression_binary: (left, op, right) =>
+    new ast.Relational(left.ast(), op.sourceString, right.ast()),
+  AdditiveExpression_binary: (left, op, right) =>
+    new ast.Additive(left.ast(), op.sourceString, right.ast()),
+  MultiplicativeExpression_binary: (left, op, right) =>
+    new ast.Multiplicative(left.ast(), op.sourceString, right.ast()),
+  UnaryExpression_unary: (op, operand) =>
+    new ast.UnaryExpression(op.sourceString, operand.ast()),
+  CallExpression_access: (exp, args) =>
+    new ast.CallExpression(exp.ast(), args.ast()),
 
-export default function parse(source: string): Program {
+  Identifier: (letter, label) =>
+    new ast.Identifier(letter.sourceString + label.sourceString),
+  Initializer: (_eq, expression) => expression.ast(),
+
+  Argument: (exp) => new ast.Argument(exp.ast()),
+  Arguments_empty: (_open, _close) => [],
+  Arguments_list: (_open, args, _close) => args.asIteration().ast(),
+
+  Parameter: (id, _col, type) => new ast.Parameter(id.ast(), type.ast()),
+  Parameters_empty: (_open, _close) => [],
+  Parameters_list: (_open, args, _close) => args.asIteration().ast(),
+
+  type: (letter, label) =>
+    new ast.Type(letter.sourceString + label.sourceString),
+  number: (integer, _decimal, fractional) =>
+    new ast.NumberLiteral(
+      fractional.numChildren
+        ? `${integer.sourceString}${fractional.sourceString}`
+        : integer.sourceString
+    ),
+  boolean: (val) => new ast.BooleanLiteral(val.sourceString),
+  qualifier: (label) => new ast.Qualifier(label.sourceString),
+});
+
+export default function parse(source: string): ast.Program {
   const match = KRUG_GRAMMAR.match(source);
 
   if (!match.succeeded()) {
